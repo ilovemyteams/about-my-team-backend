@@ -25,14 +25,14 @@ model User {
   isVerified         Boolean            @default(false) @map("is_verified")
   isTwoFactorEnabled Boolean            @default(false) @map("is_two_factor_enabled")
   method             AuthMethod
-  accaunts           Accaunt[]
+  accaunts           Account[]
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
 
   @@map("users")
 }
 
-model Accaunt {
+model Account {
   id           String   @id @default(uuid())
   type         String
   provider     String
@@ -44,7 +44,7 @@ model Accaunt {
   user         User?    @relation(fields: [userId], references: [id])
   userId       String?  @map("user_id")
 
-  @@map("accaunts")
+  @@map("accounts")
 }
 
 model Token {
@@ -173,7 +173,7 @@ enum Skill {
   REDIS
   GRAPHQL
   REST
-  MICROservices
+  MICROSERVICES
   DOCKER
   KUBERNETES
   AWS
