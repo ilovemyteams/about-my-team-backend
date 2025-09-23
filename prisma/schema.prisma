@@ -18,14 +18,14 @@ model User {
   availability       AvailabilityStatus @default(AVAILABLE) @map("availability_status")
   position           UserPosition[]     @default([UNSELECTED]) // Array of positions from the UserPosition enum
   rate               Float? // Hourly rate in USD
-  languages          String[]           @default(["Ukraine"]) // Array of languages the user speaks
+  languages          String[]           @default(["UKRAINIAN"]) // Array of languages the user speaks
   skills             Skill[]            @default([]) // Array of skills from the Skill enum
-  pictures           String? // Array of image URLs
+  pictures           String?
   role               UserRole           @default(USER)
   isVerified         Boolean            @default(false) @map("is_verified")
   isTwoFactorEnabled Boolean            @default(false) @map("is_two_factor_enabled")
   method             AuthMethod
-  accaunts           Account[]
+  accounts           Account[]
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
 
