@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./__generated__"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PG_URI")
+}
+
+model User {
+  id                 String             @id @default(uuid())
+  firstName          String             @map("first_name")
+  lastName           String?            @map("last_name")
+  email              String             @unique
+  password           String
+  bio                String?            @default("") // Short biography or description
+  availability       AvailabilityStatus @default(AVAILABLE) @map("availability_status")
+  position           UserPosition[]     @default([UNSELECTED]) // Array of positions from the UserPosition enum
+  rate               Float? // Hourly rate in USD
+  languages          String[]           @default(["Ukraine"]) // Array of languages the user speaks
+  skills             Skill[]            @default([]) // Array of skills from the Skill enum
+  pictures           String? // Array of image URLs
+  role               UserRole           @default(USER)
+  isVerified         Boolean            @default(false) @map("is_verified")
+  isTwoFactorEnabled Boolean            @default(false) @map("is_two_factor_enabled")
+  method             AuthMethod
+  accaunts           Accaunt[]
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Accaunt {
+  id           String   @id @default(uuid())
+  type         String
+  provider     String
+  refreshToken String?  @map("refresh_token")
+  accessToken  String   @map("access_token")
+  expiresAt    Int?     @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User?    @relation(fields: [userId], references: [id])
+  userId       String?  @map("user_id")
+
+  @@map("accaunts")
+}
+
+model Token {
+  id        String    @id @default(uuid())
+  email     String
+  token     String    @unique
+  type      TokenType
+  expiresIn DateTime  @map("expires_in")
+
+  @@map("tokens")
+}
+
+enum AuthMethod {
+  EMAIL
+  GOOGLE
+  GITHUB
+  LINKEDIN
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  TWO_FACTOR_AUTH
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  UNAVAILABLE
+  PART_TIME
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  GUEST
+}
+
+enum UserPosition {
+  UNSELECTED
+  FRONTEND_DEVELOPER
+  BACKEND_DEVELOPER
+  FULLSTACK_DEVELOPER
+  MOBILE_DEVELOPER
+  DEVOPS_ENGINEER
+  SITE_RELIABILITY_ENGINEER
+  QA_ENGINEER
+  QA_AUTOMATION_ENGINEER
+  QA_MANUAL_ENGINEER
+  SOFTWARE_ARCHITECT
+  DATA_ENGINEER
+  DATA_SCIENTIST
+  MACHINE_LEARNING_ENGINEER
+  AI_ENGINEER
+  SYSTEM_ADMINISTRATOR
+  NETWORK_ENGINEER
+  DATABASE_ADMINISTRATOR
+  SECURITY_ENGINEER
+  CLOUD_ENGINEER
+  UX_UI_DEVELOPER
+  UX_DESIGNER
+  UI_DESIGNER
+  FRONTEND_ARCHITECT
+  BACKEND_ARCHITECT
+  PRODUCT_DEVELOPER
+  PROJECT_MANAGER
+  PRODUCT_MANAGER
+  BUSINESS_ANALYST
+  SCRUM_MASTER
+  TECHNICAL_WRITER
+  CUSTOMER_SUCCESS_MANAGER
+  SALES_ENGINEER
+  SALES_REPRESENTATIVE
+  MARKETING_MANAGER
+  HR_SPECIALIST
+  SUPPORT_SPECIALIST
+  OPERATIONS_MANAGER
+  ACCOUNT_MANAGER
+  DESIGN_MANAGER
+  UX_RESEARCHER
+}
+
+enum Skill {
+  // Frontend
+  HTML
+  CSS
+  JAVASCRIPT
+  TYPESCRIPT
+  REACT
+  NEXTJS
+  VUE
+  ANGULAR
+  SVELTE
+  REDUX
+  MOBX
+  TAILWINDCSS
+  BOOTSTRAP
+  MATERIAL_UI
+  STORYBOOK
+  TESTING_LIBRARY
+  JEST
+  CYPRESS
+
+  // Backend
+  NODEJS
+  NESTJS
+  EXPRESS
+  KOA
+  PYTHON
+  DJANGO
+  FLASK
+  RUBY
+  RUBY_ON_RAILS
+  PHP
+  LARAVEL
+  SYMFONY
+  JAVA
+  SPRING
+  CSHARP
+  DOTNET
+  GO
+  RUST
+  SQL
+  POSTGRESQL
+  MYSQL
+  MONGODB
+  REDIS
+  GRAPHQL
+  REST
+  MICROservices
+  DOCKER
+  KUBERNETES
+  AWS
+  GCP
+  AZURE
+  CI_CD
+  GIT
+  SVN
+  TESTING
+  UNIT_TESTS
+  INTEGRATION_TESTS
+  END_TO_END_TESTS
+
+  // QA
+  MANUAL_TESTING
+  AUTOMATION_TESTING
+  SELENIUM
+  CYPRESS_QA
+  POSTMAN
+  JIRA
+  TESTRAIL
+  QA_ANALYSIS
+
+  // DevOps / SysAdmin
+  LINUX
+  WINDOWS_SERVER
+  NETWORKING
+  SECURITY
+  FIREWALL
+  VPN
+  MONITORING
+  PROMETHEUS
+  GRAFANA
+  ANSIBLE
+  TERRAFORM
+
+  // Data / ML / AI
+  DATA_ANALYSIS
+  DATA_ENGINEERING
+  DATA_SCIENCE
+  MACHINE_LEARNING
+  DEEP_LEARNING
+  PYTORCH
+  TENSORFLOW
+  SCIKIT_LEARN
+  PANDAS
+  NUMPY
+  MATPLOTLIB
+  SEABORN
+  NLP
+  COMPUTER_VISION
+  BIG_DATA
+  SPARK
+  HADOOP
+
+  // Design / UX / UI
+  UX_DESIGN
+  UI_DESIGN
+  Figma
+  Sketch
+  Adobe_XD
+  Photoshop
+  Illustrator
+  PROTOTYPING
+  USER_RESEARCH
+  USABILITY_TESTING
+
+  // Project / Management / Business
+  PROJECT_MANAGEMENT
+  PRODUCT_MANAGEMENT
+  SCRUM
+  KANBAN
+  AGILE
+  BUSINESS_ANALYSIS
+  TECHNICAL_WRITING
+  CUSTOMER_SUCCESS
+  SALES
+  MARKETING
+  HR
+  OPERATIONS
+  ACCOUNT_MANAGEMENT
+  COMMUNICATION
+  LEADERSHIP
+}
