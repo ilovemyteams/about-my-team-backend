@@ -8,30 +8,94 @@ datasource db {
   url      = env("PG_URI")
 }
 
+/// Основна таблиця користувачів
 model User {
-  id                 String             @id @default(uuid())
-  firstName          String             @map("first_name")
-  lastName           String?            @map("last_name")
-  email              String             @unique
-  password           String
-  bio                String?            @default("") // Short biography or description
-  availability       AvailabilityStatus @default(AVAILABLE) @map("availability_status")
-  position           UserPosition[]     @default([UNSELECTED]) // Array of positions from the UserPosition enum
-  rate               Float? // Hourly rate in USD
-  languages          String[]           @default(["UKRAINIAN"]) // Array of languages the user speaks
-  skills             Skill[]            @default([]) // Array of skills from the Skill enum
-  pictures           String?
-  role               UserRole           @default(USER)
-  isVerified         Boolean            @default(false) @map("is_verified")
-  isTwoFactorEnabled Boolean            @default(false) @map("is_two_factor_enabled")
-  method             AuthMethod
-  accounts           Account[]
-  createdAt          DateTime           @default(now()) @map("created_at")
-  updatedAt          DateTime           @updatedAt @map("updated_at")
+  id                 String     @id @default(uuid()) // Унікальний ідентифікатор
+  firstName          String // Імʼя користувача
+  lastName           String? // Прізвище користувача, необовʼязково
+  email              String     @unique // Email, унікальний
+  password           String // Хеш пароля
+  bio                String?    @default("") // Коротка інформація про користувача
+  pictures           String? // Посилання на аватар чи фото
+  isVerified         Boolean    @default(false) @map("is_verified") // Чи пройшов верифікацію
+  isTwoFactorEnabled Boolean    @default(false) @map("is_two_factor_enabled") // 2FA
+  method             AuthMethod // Метод аутентифікації
+  createdAt          DateTime   @default(now()) @map("created_at") // Дата створення
+  updatedAt          DateTime   @updatedAt @map("updated_at") // Дата останнього оновлення
 
-  @@map("users")
+  /// Профіль виконавця, якщо користувач – Contractor
+  contractorProfile Contractor?
+
+  /// Профіль клієнта, якщо користувач – Client
+  clientProfile Client?
+
+  /// Участь у проектах (many-to-many через ProjectMember)
+  projectMemberships ProjectMember[]
+
+  /// Проекти, створені клієнтом (EXTERNAL)
+  createdProjects Project[] @relation("ClientProjects")
+
+  accounts Account[] // Зовнішні акаунти (Google, GitHub і т.д.)
 }
 
+/// Таблиця для виконавців (Contractor)
+model Contractor {
+  userId       String             @id
+  role         UserRole
+  availability AvailabilityStatus @default(AVAILABLE)
+  languages    String[]           @default(["UKRAINIAN"])
+  positions    UserPosition[]     @default([UNSELECTED])
+  rate         Float?
+  skills       Skill[]            @default([])
+
+  user User @relation(fields: [userId], references: [id])
+
+  /// Внутрішні проекти виконавця
+  internalProjects Project[] @relation("ContractorProjects")
+}
+
+/// Таблиця для клієнтів (Client)
+model Client {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+/// Проекти
+model Project {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  images      String[]    @default([])
+  type        ProjectType
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  /// EXTERNAL проект
+  clientId String?
+  client   User?   @relation("ClientProjects", fields: [clientId], references: [id])
+
+  /// INTERNAL проект
+  ownerId      String?
+  owner        Contractor? @relation("ContractorProjects", fields: [ownerId], references: [userId])
+  neededPeople Int?
+  budget       Float?
+
+  members ProjectMember[]
+}
+
+/// Звʼязок юзерів з проектами
+model ProjectMember {
+  id        String       @id @default(uuid())
+  project   Project      @relation(fields: [projectId], references: [id])
+  projectId String
+  user      User         @relation(fields: [userId], references: [id])
+  userId    String
+  role      UserPosition // Позиція юзера у проекті
+
+  @@unique([projectId, userId]) // один юзер один раз в проекті
+}
+
+/// Зовнішні акаунти для входу через OAuth
 model Account {
   id           String   @id @default(uuid())
   type         String
@@ -43,20 +107,25 @@ model Account {
   updatedAt    DateTime @updatedAt @map("updated_at")
   user         User?    @relation(fields: [userId], references: [id])
   userId       String?  @map("user_id")
-
-  @@map("accounts")
 }
 
-model Token {
-  id        String    @id @default(uuid())
-  email     String
-  token     String    @unique
-  type      TokenType
-  expiresIn DateTime  @map("expires_in")
-
-  @@map("tokens")
+/// Тип користувача
+enum UserRole {
+  CONTRACTOR
+  CLIENT
+  ADMIN
+  USER
+  GUEST
 }
 
+/// Статус доступності виконавця
+enum AvailabilityStatus {
+  AVAILABLE
+  UNAVAILABLE
+  PART_TIME
+}
+
+/// Метод аутентифікації
 enum AuthMethod {
   EMAIL
   GOOGLE
@@ -64,24 +133,7 @@ enum AuthMethod {
   LINKEDIN
 }
 
-enum TokenType {
-  EMAIL_VERIFICATION
-  PASSWORD_RESET
-  TWO_FACTOR_AUTH
-}
-
-enum AvailabilityStatus {
-  AVAILABLE
-  UNAVAILABLE
-  PART_TIME
-}
-
-enum UserRole {
-  ADMIN
-  USER
-  GUEST
-}
-
+/// Позиції користувача/виконавця
 enum UserPosition {
   UNSELECTED
   FRONTEND_DEVELOPER
@@ -126,8 +178,14 @@ enum UserPosition {
   UX_RESEARCHER
 }
 
+/// Тип проекту
+enum ProjectType {
+  INTERNAL
+  EXTERNAL
+}
+
+/// Навички виконавця
 enum Skill {
-  // Frontend
   HTML
   CSS
   JAVASCRIPT
@@ -146,8 +204,6 @@ enum Skill {
   TESTING_LIBRARY
   JEST
   CYPRESS
-
-  // Backend
   NODEJS
   NESTJS
   EXPRESS
@@ -186,8 +242,6 @@ enum Skill {
   UNIT_TESTS
   INTEGRATION_TESTS
   END_TO_END_TESTS
-
-  // QA
   MANUAL_TESTING
   AUTOMATION_TESTING
   SELENIUM
@@ -196,8 +250,6 @@ enum Skill {
   JIRA
   TESTRAIL
   QA_ANALYSIS
-
-  // DevOps / SysAdmin
   LINUX
   WINDOWS_SERVER
   NETWORKING
@@ -209,8 +261,6 @@ enum Skill {
   GRAFANA
   ANSIBLE
   TERRAFORM
-
-  // Data / ML / AI
   DATA_ANALYSIS
   DATA_ENGINEERING
   DATA_SCIENCE
@@ -228,8 +278,6 @@ enum Skill {
   BIG_DATA
   SPARK
   HADOOP
-
-  // Design / UX / UI
   UX_DESIGN
   UI_DESIGN
   Figma
@@ -240,8 +288,6 @@ enum Skill {
   PROTOTYPING
   USER_RESEARCH
   USABILITY_TESTING
-
-  // Project / Management / Business
   PROJECT_MANAGEMENT
   PRODUCT_MANAGEMENT
   SCRUM
