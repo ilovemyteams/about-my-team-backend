@@ -1,0 +1,306 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./__generated__"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PG_URI")
+}
+
+/// Основна таблиця користувачів
+model User {
+  id                 String     @id @default(uuid()) // Унікальний ідентифікатор
+  firstName          String // Імʼя користувача
+  lastName           String? // Прізвище користувача, необовʼязково
+  email              String     @unique // Email, унікальний
+  password           String // Хеш пароля
+  bio                String?    @default("") // Коротка інформація про користувача
+  pictures           String? // Посилання на аватар чи фото
+  isVerified         Boolean    @default(false) @map("is_verified") // Чи пройшов верифікацію
+  isTwoFactorEnabled Boolean    @default(false) @map("is_two_factor_enabled") // 2FA
+  method             AuthMethod // Метод аутентифікації
+  createdAt          DateTime   @default(now()) @map("created_at") // Дата створення
+  updatedAt          DateTime   @updatedAt @map("updated_at") // Дата останнього оновлення
+
+  /// Профіль виконавця, якщо користувач – Contractor
+  contractorProfile Contractor?
+
+  /// Профіль клієнта, якщо користувач – Client
+  clientProfile Client?
+
+  /// Участь у проектах (many-to-many через ProjectMember)
+  projectMemberships ProjectMember[]
+
+  /// Проекти, створені клієнтом (EXTERNAL)
+  createdProjects Project[] @relation("ClientProjects")
+
+  accounts Account[] // Зовнішні акаунти (Google, GitHub і т.д.)
+}
+
+/// Таблиця для виконавців (Contractor)
+model Contractor {
+  userId       String             @id
+  role         UserRole
+  availability AvailabilityStatus @default(AVAILABLE)
+  languages    String[]           @default(["UKRAINIAN"])
+  positions    UserPosition[]     @default([UNSELECTED])
+  rate         Float?
+  skills       Skill[]            @default([])
+
+  user User @relation(fields: [userId], references: [id])
+
+  /// Внутрішні проекти виконавця
+  internalProjects Project[] @relation("ContractorProjects")
+}
+
+/// Таблиця для клієнтів (Client)
+model Client {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+/// Проекти
+model Project {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  images      String[]    @default([])
+  type        ProjectType
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  /// EXTERNAL проект
+  clientId String?
+  client   User?   @relation("ClientProjects", fields: [clientId], references: [id])
+
+  /// INTERNAL проект
+  ownerId      String?
+  owner        Contractor? @relation("ContractorProjects", fields: [ownerId], references: [userId])
+  neededPeople Int?
+  budget       Float?
+
+  members ProjectMember[]
+}
+
+/// Звʼязок юзерів з проектами
+model ProjectMember {
+  id        String       @id @default(uuid())
+  project   Project      @relation(fields: [projectId], references: [id])
+  projectId String
+  user      User         @relation(fields: [userId], references: [id])
+  userId    String
+  role      UserPosition // Позиція юзера у проекті
+
+  @@unique([projectId, userId]) // один юзер один раз в проекті
+}
+
+/// Зовнішні акаунти для входу через OAuth
+model Account {
+  id           String   @id @default(uuid())
+  type         String
+  provider     String
+  refreshToken String?  @map("refresh_token")
+  accessToken  String   @map("access_token")
+  expiresAt    Int?     @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User?    @relation(fields: [userId], references: [id])
+  userId       String?  @map("user_id")
+}
+
+/// Тип користувача
+enum UserRole {
+  CONTRACTOR
+  CLIENT
+  ADMIN
+  USER
+  GUEST
+}
+
+/// Статус доступності виконавця
+enum AvailabilityStatus {
+  AVAILABLE
+  UNAVAILABLE
+  PART_TIME
+}
+
+/// Метод аутентифікації
+enum AuthMethod {
+  EMAIL
+  GOOGLE
+  GITHUB
+  LINKEDIN
+}
+
+/// Позиції користувача/виконавця
+enum UserPosition {
+  UNSELECTED
+  FRONTEND_DEVELOPER
+  BACKEND_DEVELOPER
+  FULLSTACK_DEVELOPER
+  MOBILE_DEVELOPER
+  DEVOPS_ENGINEER
+  SITE_RELIABILITY_ENGINEER
+  QA_ENGINEER
+  QA_AUTOMATION_ENGINEER
+  QA_MANUAL_ENGINEER
+  SOFTWARE_ARCHITECT
+  DATA_ENGINEER
+  DATA_SCIENTIST
+  MACHINE_LEARNING_ENGINEER
+  AI_ENGINEER
+  SYSTEM_ADMINISTRATOR
+  NETWORK_ENGINEER
+  DATABASE_ADMINISTRATOR
+  SECURITY_ENGINEER
+  CLOUD_ENGINEER
+  UX_UI_DEVELOPER
+  UX_DESIGNER
+  UI_DESIGNER
+  FRONTEND_ARCHITECT
+  BACKEND_ARCHITECT
+  PRODUCT_DEVELOPER
+  PROJECT_MANAGER
+  PRODUCT_MANAGER
+  BUSINESS_ANALYST
+  SCRUM_MASTER
+  TECHNICAL_WRITER
+  CUSTOMER_SUCCESS_MANAGER
+  SALES_ENGINEER
+  SALES_REPRESENTATIVE
+  MARKETING_MANAGER
+  HR_SPECIALIST
+  SUPPORT_SPECIALIST
+  OPERATIONS_MANAGER
+  ACCOUNT_MANAGER
+  DESIGN_MANAGER
+  UX_RESEARCHER
+}
+
+/// Тип проекту
+enum ProjectType {
+  INTERNAL
+  EXTERNAL
+}
+
+/// Навички виконавця
+enum Skill {
+  HTML
+  CSS
+  JAVASCRIPT
+  TYPESCRIPT
+  REACT
+  NEXTJS
+  VUE
+  ANGULAR
+  SVELTE
+  REDUX
+  MOBX
+  TAILWINDCSS
+  BOOTSTRAP
+  MATERIAL_UI
+  STORYBOOK
+  TESTING_LIBRARY
+  JEST
+  CYPRESS
+  NODEJS
+  NESTJS
+  EXPRESS
+  KOA
+  PYTHON
+  DJANGO
+  FLASK
+  RUBY
+  RUBY_ON_RAILS
+  PHP
+  LARAVEL
+  SYMFONY
+  JAVA
+  SPRING
+  CSHARP
+  DOTNET
+  GO
+  RUST
+  SQL
+  POSTGRESQL
+  MYSQL
+  MONGODB
+  REDIS
+  GRAPHQL
+  REST
+  MICROSERVICES
+  DOCKER
+  KUBERNETES
+  AWS
+  GCP
+  AZURE
+  CI_CD
+  GIT
+  SVN
+  TESTING
+  UNIT_TESTS
+  INTEGRATION_TESTS
+  END_TO_END_TESTS
+  MANUAL_TESTING
+  AUTOMATION_TESTING
+  SELENIUM
+  CYPRESS_QA
+  POSTMAN
+  JIRA
+  TESTRAIL
+  QA_ANALYSIS
+  LINUX
+  WINDOWS_SERVER
+  NETWORKING
+  SECURITY
+  FIREWALL
+  VPN
+  MONITORING
+  PROMETHEUS
+  GRAFANA
+  ANSIBLE
+  TERRAFORM
+  DATA_ANALYSIS
+  DATA_ENGINEERING
+  DATA_SCIENCE
+  MACHINE_LEARNING
+  DEEP_LEARNING
+  PYTORCH
+  TENSORFLOW
+  SCIKIT_LEARN
+  PANDAS
+  NUMPY
+  MATPLOTLIB
+  SEABORN
+  NLP
+  COMPUTER_VISION
+  BIG_DATA
+  SPARK
+  HADOOP
+  UX_DESIGN
+  UI_DESIGN
+  Figma
+  Sketch
+  Adobe_XD
+  Photoshop
+  Illustrator
+  PROTOTYPING
+  USER_RESEARCH
+  USABILITY_TESTING
+  PROJECT_MANAGEMENT
+  PRODUCT_MANAGEMENT
+  SCRUM
+  KANBAN
+  AGILE
+  BUSINESS_ANALYSIS
+  TECHNICAL_WRITING
+  CUSTOMER_SUCCESS
+  SALES
+  MARKETING
+  HR
+  OPERATIONS
+  ACCOUNT_MANAGEMENT
+  COMMUNICATION
+  LEADERSHIP
+}
