@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "./__generated__"
 }
 
 datasource db {
@@ -15,6 +14,7 @@ model User {
   lastName           String? // Прізвище користувача, необовʼязково
   email              String     @unique // Email, унікальний
   password           String // Хеш пароля
+  phone              String?    @unique // Телефон, унікальний, необовʼязково
   bio                String?    @default("") // Коротка інформація про користувача
   pictures           String? // Посилання на аватар чи фото
   isVerified         Boolean    @default(false) @map("is_verified") // Чи пройшов верифікацію
