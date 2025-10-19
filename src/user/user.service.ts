@@ -26,8 +26,16 @@ export class UserService {
 		})
 		return user
 	}
+
+	public async findByPhone(phone: string) {
+		const user = await this.prismaService.user.findUnique({
+			where: { phone },
+			include: { accounts: true }
+		})
+		return user
+	}
 	public async create(
-		firsName: string,
+		firstName: string,
 		lastName: string,
 		email: string,
 		password: string,
@@ -35,21 +43,28 @@ export class UserService {
 		isVerified: boolean,
 		phone?: string,
 		bio?: string,
-		pictures?: string
+		pictures?: string,
+		country?: string,
+		linkedIn?: string,
+		github?: string,
+		telegramOrwhatsApp?: string
 	) {
 		const user = await this.prismaService.user.create({
 			data: {
-				firstName: firsName,
+				firstName: firstName,
 				lastName: lastName,
 				email,
-				phone,
 				password: password ? await hash(password) : '',
+				method,
+				isVerified,
+				phone,
 				bio,
 				pictures,
-				method,
-				isVerified
-			},
-			include: { accounts: true }
+				country,
+				linkedIn,
+				github,
+				telegramOrwhatsApp
+			}
 		})
 		return user
 	}

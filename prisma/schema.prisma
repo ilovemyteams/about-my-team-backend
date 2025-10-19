@@ -15,8 +15,14 @@ model User {
   email              String     @unique // Email, унікальний
   password           String // Хеш пароля
   phone              String?    @unique // Телефон, унікальний, необовʼязково
-  bio                String?    @default("") // Коротка інформація про користувача
+  bio                String? // Коротка інформація про користувача
   pictures           String? // Посилання на аватар чи фото
+  country            String? // Країна користувача
+  role               UserRole   @default(USER) // Роль користувача
+  linkedIn           String? // Профіль LinkedIn
+  instagram          String? // Профіль Instagram
+  github             String? // Профіль GitHub
+  telegramOrwhatsApp String? // Профіль Telegram або WhatsApp
   isVerified         Boolean    @default(false) @map("is_verified") // Чи пройшов верифікацію
   isTwoFactorEnabled Boolean    @default(false) @map("is_two_factor_enabled") // 2FA
   method             AuthMethod // Метод аутентифікації
@@ -36,6 +42,8 @@ model User {
   createdProjects Project[] @relation("ClientProjects")
 
   accounts Account[] // Зовнішні акаунти (Google, GitHub і т.д.)
+
+  @@map("users")
 }
 
 /// Таблиця для виконавців (Contractor)
@@ -58,6 +66,8 @@ model Contractor {
 model Client {
   userId String @id
   user   User   @relation(fields: [userId], references: [id])
+
+  @@map("clients")
 }
 
 /// Проекти
@@ -81,6 +91,8 @@ model Project {
   budget       Float?
 
   members ProjectMember[]
+
+  @@map("projects")
 }
 
 /// Звʼязок юзерів з проектами
@@ -93,6 +105,7 @@ model ProjectMember {
   role      UserPosition // Позиція юзера у проекті
 
   @@unique([projectId, userId]) // один юзер один раз в проекті
+  @@map("project_members")
 }
 
 /// Зовнішні акаунти для входу через OAuth
@@ -107,6 +120,27 @@ model Account {
   updatedAt    DateTime @updatedAt @map("updated_at")
   user         User?    @relation(fields: [userId], references: [id])
   userId       String?  @map("user_id")
+
+  @@map("accounts")
+}
+
+model Token {
+  id String @id @default(uuid())
+
+  email     String
+  token     String    @unique
+  type      TokenType
+  expiresIn DateTime  @map("expires_in")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("tokens")
+}
+
+enum TokenType {
+  VERIFICATION
+  TWO_FACTOR
+  PASSWORD_RESET
 }
 
 /// Тип користувача
